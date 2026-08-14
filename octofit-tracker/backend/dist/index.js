@@ -7,30 +7,7 @@ exports.createApp = void 0;
 const express_1 = __importDefault(require("express"));
 const database_1 = __importDefault(require("./config/database"));
 const api_1 = require("./config/api");
-const users = [
-    { id: 1, name: 'Maya Chen', email: 'maya@example.com', team: 'Red Falcons' },
-    { id: 2, name: 'Leo Martinez', email: 'leo@example.com', team: 'Blue Sharks' },
-    { id: 3, name: 'Ava Johnson', email: 'ava@example.com', team: 'Red Falcons' },
-];
-const teams = [
-    { id: 1, name: 'Red Falcons', members: ['Maya Chen', 'Ava Johnson'], points: 420 },
-    { id: 2, name: 'Blue Sharks', members: ['Leo Martinez'], points: 360 },
-];
-const activities = [
-    { id: 1, user: 'Maya Chen', type: 'Running', minutes: 35, date: '2026-08-11' },
-    { id: 2, user: 'Leo Martinez', type: 'Strength', minutes: 40, date: '2026-08-12' },
-    { id: 3, user: 'Ava Johnson', type: 'Cycling', minutes: 30, date: '2026-08-10' },
-];
-const leaderboard = [
-    { id: 1, name: 'Maya Chen', team: 'Red Falcons', points: 420 },
-    { id: 2, name: 'Ava Johnson', team: 'Red Falcons', points: 390 },
-    { id: 3, name: 'Leo Martinez', team: 'Blue Sharks', points: 360 },
-];
-const workouts = [
-    { id: 1, title: 'Cardio Blast', difficulty: 'Moderate', duration: 25, focus: 'Endurance' },
-    { id: 2, title: 'Core Circuit', difficulty: 'Intermediate', duration: 20, focus: 'Strength' },
-    { id: 3, title: 'Sprint Intervals', difficulty: 'Advanced', duration: 18, focus: 'Speed' },
-];
+const models_1 = require("./models");
 const createApp = () => {
     const app = (0, express_1.default)();
     const PORT = Number(process.env.PORT || 8000);
@@ -45,76 +22,88 @@ const createApp = () => {
             endpoints: ['/api/users/', '/api/teams/', '/api/activities/', '/api/leaderboard/', '/api/workouts/'],
         });
     });
-    app.get('/api/users/', (_req, res) => {
+    const ensureSeedData = async () => {
+        const [userCount, teamCount, activityCount, leaderboardCount, workoutCount] = await Promise.all([
+            models_1.User.countDocuments(),
+            models_1.Team.countDocuments(),
+            models_1.Activity.countDocuments(),
+            models_1.LeaderboardEntry.countDocuments(),
+            models_1.Workout.countDocuments(),
+        ]);
+        if ([userCount, teamCount, activityCount, leaderboardCount, workoutCount].some((count) => count === 0)) {
+            await (0, models_1.seedCollections)();
+        }
+    };
+    app.get('/api/users/', async (_req, res) => {
+        await ensureSeedData();
+        const users = await models_1.User.find().sort({ createdAt: 1 }).lean();
         res.json(users);
     });
-    app.post('/api/users/', (req, res) => {
+    app.post('/api/users/', async (req, res) => {
         const payload = req.body;
-        const nextUser = {
-            id: users.length ? Math.max(...users.map((user) => user.id)) + 1 : 1,
+        const nextUser = await models_1.User.create({
             name: payload.name || 'New User',
             email: payload.email || 'newuser@example.com',
             team: payload.team || 'Unassigned',
-        };
-        users.push(nextUser);
+        });
         res.status(201).json(nextUser);
     });
-    app.get('/api/teams/', (_req, res) => {
+    app.get('/api/teams/', async (_req, res) => {
+        await ensureSeedData();
+        const teams = await models_1.Team.find().sort({ createdAt: 1 }).lean();
         res.json(teams);
     });
-    app.post('/api/teams/', (req, res) => {
+    app.post('/api/teams/', async (req, res) => {
         const payload = req.body;
-        const nextTeam = {
-            id: teams.length ? Math.max(...teams.map((team) => team.id)) + 1 : 1,
+        const nextTeam = await models_1.Team.create({
             name: payload.name || 'New Team',
             members: payload.members || [],
             points: payload.points || 0,
-        };
-        teams.push(nextTeam);
+        });
         res.status(201).json(nextTeam);
     });
-    app.get('/api/activities/', (_req, res) => {
+    app.get('/api/activities/', async (_req, res) => {
+        await ensureSeedData();
+        const activities = await models_1.Activity.find().sort({ createdAt: 1 }).lean();
         res.json(activities);
     });
-    app.post('/api/activities/', (req, res) => {
+    app.post('/api/activities/', async (req, res) => {
         const payload = req.body;
-        const nextActivity = {
-            id: activities.length ? Math.max(...activities.map((activity) => activity.id)) + 1 : 1,
+        const nextActivity = await models_1.Activity.create({
             user: payload.user || 'Unknown User',
             type: payload.type || 'Workout',
             minutes: payload.minutes || 0,
             date: payload.date || new Date().toISOString().slice(0, 10),
-        };
-        activities.push(nextActivity);
+        });
         res.status(201).json(nextActivity);
     });
-    app.get('/api/leaderboard/', (_req, res) => {
+    app.get('/api/leaderboard/', async (_req, res) => {
+        await ensureSeedData();
+        const leaderboard = await models_1.LeaderboardEntry.find().sort({ points: -1, createdAt: 1 }).lean();
         res.json(leaderboard);
     });
-    app.post('/api/leaderboard/', (req, res) => {
+    app.post('/api/leaderboard/', async (req, res) => {
         const payload = req.body;
-        const nextEntry = {
-            id: leaderboard.length ? Math.max(...leaderboard.map((entry) => entry.id)) + 1 : 1,
+        const nextEntry = await models_1.LeaderboardEntry.create({
             name: payload.name || 'New Athlete',
             team: payload.team || 'Unassigned',
             points: payload.points || 0,
-        };
-        leaderboard.push(nextEntry);
+        });
         res.status(201).json(nextEntry);
     });
-    app.get('/api/workouts/', (_req, res) => {
+    app.get('/api/workouts/', async (_req, res) => {
+        await ensureSeedData();
+        const workouts = await models_1.Workout.find().sort({ createdAt: 1 }).lean();
         res.json(workouts);
     });
-    app.post('/api/workouts/', (req, res) => {
+    app.post('/api/workouts/', async (req, res) => {
         const payload = req.body;
-        const nextWorkout = {
-            id: workouts.length ? Math.max(...workouts.map((workout) => workout.id)) + 1 : 1,
+        const nextWorkout = await models_1.Workout.create({
             title: payload.title || 'New Workout',
             difficulty: payload.difficulty || 'Beginner',
             duration: payload.duration || 15,
             focus: payload.focus || 'General Fitness',
-        };
-        workouts.push(nextWorkout);
+        });
         res.status(201).json(nextWorkout);
     });
     return app;
