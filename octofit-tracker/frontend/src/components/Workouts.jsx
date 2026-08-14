@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import { getApiEndpoint, fetchData } from '../api';
 
+/**
+ * API Endpoints:
+ * - https://{CODESPACE_NAME}-8000.app.github.dev/api/workouts (Codespaces)
+ * - http://localhost:8000/api/workouts (Local development)
+ */
 export default function Workouts() {
   const [workouts, setWorkouts] = useState([]);
   const [loading, setLoading] = useState(true);

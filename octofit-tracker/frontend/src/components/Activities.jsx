@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import { getApiEndpoint, fetchData } from '../api';
 
+/**
+ * API Endpoints:
+ * - https://{CODESPACE_NAME}-8000.app.github.dev/api/activities (Codespaces)
+ * - http://localhost:8000/api/activities (Local development)
+ */
 export default function Activities() {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
