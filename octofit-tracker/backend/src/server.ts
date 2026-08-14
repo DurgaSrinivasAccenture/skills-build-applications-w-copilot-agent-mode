@@ -11,8 +11,7 @@ app.listen(port, () => {
   console.log(`Octofit Tracker API running on http://localhost:${port}`);
   
   if (codespaceName) {
-    const codespaceUrl = `https://${codespaceName}-${port}.app.github.dev`;
-    console.log(`Codespaces API URL: ${codespaceUrl}`);
+    console.log(`Codespaces API URL: https://${codespaceName}-8000.app.github.dev`);
   } else {
     console.log(`Codespaces API URL: ${API_BASE_URL}`);
   }
