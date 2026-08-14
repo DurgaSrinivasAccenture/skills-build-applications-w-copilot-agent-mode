@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createApp = void 0;
 const express_1 = __importDefault(require("express"));
-const database_1 = __importDefault(require("./config/database"));
+const database_1 = __importDefault(require("./config/database")); // Ensure DB connection is established
 const api_1 = require("./config/api");
 const models_1 = require("./models");
 const createApp = () => {
@@ -23,6 +23,22 @@ const createApp = () => {
         });
     });
     const ensureSeedData = async () => {
+        // Wait for database connection to be ready
+        if (database_1.default.readyState !== 1) {
+            await new Promise((resolve) => {
+                if (database_1.default.readyState === 1) {
+                    resolve(null);
+                }
+                else {
+                    const checkConnection = setInterval(() => {
+                        if (database_1.default.readyState === 1) {
+                            clearInterval(checkConnection);
+                            resolve(null);
+                        }
+                    }, 100);
+                }
+            });
+        }
         const [userCount, teamCount, activityCount, leaderboardCount, workoutCount] = await Promise.all([
             models_1.User.countDocuments(),
             models_1.Team.countDocuments(),
@@ -109,13 +125,4 @@ const createApp = () => {
     return app;
 };
 exports.createApp = createApp;
-if (require.main === module) {
-    const app = (0, exports.createApp)();
-    const port = Number(process.env.PORT || 8000);
-    app.listen(port, () => {
-        console.log(`Octofit Tracker API running on http://localhost:${port}`);
-        console.log(`Codespaces API URL: ${api_1.API_BASE_URL}`);
-    });
-    database_1.default.on('error', console.error.bind(console, 'MongoDB connection error:'));
-}
 //# sourceMappingURL=index.js.map

@@ -1,5 +1,5 @@
 import express, { Express } from 'express';
-import db from './config/database';
+import db from './config/database'; // Ensure DB connection is established
 import { API_BASE_URL } from './config/api';
 import { Activity, LeaderboardEntry, Team, User, Workout, seedCollections } from './models';
 
@@ -22,6 +22,22 @@ export const createApp = (): Express => {
   });
 
   const ensureSeedData = async () => {
+    // Wait for database connection to be ready
+    if (db.readyState !== 1) {
+      await new Promise((resolve) => {
+        if (db.readyState === 1) {
+          resolve(null);
+        } else {
+          const checkConnection = setInterval(() => {
+            if (db.readyState === 1) {
+              clearInterval(checkConnection);
+              resolve(null);
+            }
+          }, 100);
+        }
+      });
+    }
+
     const [userCount, teamCount, activityCount, leaderboardCount, workoutCount] = await Promise.all([
       User.countDocuments(),
       Team.countDocuments(),
@@ -124,14 +140,3 @@ export const createApp = (): Express => {
 
   return app;
 };
-
-if (require.main === module) {
-  const app = createApp();
-  const port = Number(process.env.PORT || 8000);
-  app.listen(port, () => {
-    console.log(`Octofit Tracker API running on http://localhost:${port}`);
-    console.log(`Codespaces API URL: ${API_BASE_URL}`);
-  });
-
-  db.on('error', console.error.bind(console, 'MongoDB connection error:'));
-}
